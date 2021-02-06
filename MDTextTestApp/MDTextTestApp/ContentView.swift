@@ -10,35 +10,67 @@ import SwiftUI
 import MDText
 
 struct ContentView: View {
+    
+    init() {
+        // Assigning a closure to have a diffrent behavior while handling links.
+        MDLinkHandler.onTapLinkCallback = { url in
+            print("This is the tapped link: \(url)")
+        }
+    }
+    
     @State var markdown =
-#"""
-Combine the Digestive Blend, Turmeric, and Yarrow Pom in an empty capsule and take it 3x daily on an empty stomach.
+        #"""
+    # hello, This is Markdown Live Preview
 
-Apply a drop of each oil to the upper abdomen 3x daily at the same time as the capsule is taken.
+    ----
+    ## what is Markdown?
+    see [Wikipedia](https://en.wikipedia.org/wiki/Markdown)
 
-Take 2 Digestive Blend Softgels with food.
+    > Markdown is a lightweight markup language, originally created by John Gruber and Aaron Swartz allowing people "to write using an easy-to-read, easy-to-write plain text format, then convert it to structurally valid XHTML (or HTML)".
+    
+    `example code`
 
-Suggested Duration: 3-6 months
+    ~~Ciao~~
 
-**Additional Support: Probiotic Complex (take 2 capsules 2x daily on an empty stomach), Digestive Enzymes (take 1 capsule with each meal)**
-"""#
+    ----
+    ## usage
+    1. Write markdown text in this textarea.
+    2. Click 'HTML Preview' button.
+
+    ----
+    ## markdown quick reference
+    # headers
+
+    *emphasis*
+
+    **strong**
+
+    * list
+
+    > block quote
+
+        code (4 spaces indent)
+    [links](https://wikipedia.org)
+
+    ----
+    ## changelog
+    * 17-Feb-2013 re-design
+
+    ----
+    ## thanks
+    * [markdown-js](https://github.com/evilstreak/markdown-js)
+    """#
     var body: some View {
         ScrollView {
             VStack(alignment: .leading) {
                 HStack {
                     Spacer()
                 }
-//                Text("Description")
-//                .font(.headline)
                 MDText(markdown: markdown)
-//                    .multilineTextAlignment(.leading)
-                    
-                
-//                MDText(markdown: markdown)
             }
             .padding(.horizontal)
         }
-    .onAppear(perform: onLoad)
+        .onAppear(perform: onLoad)
     }
     
     func onLoad() {

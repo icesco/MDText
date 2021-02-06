@@ -46,6 +46,11 @@ enum MDViewType {
     case text(Text), link(MDTextGroup)
 }
 
+public class MDLinkHandler {
+    
+    public static var onTapLinkCallback: ((URL) -> Void)? = nil
+}
+
 struct MDViewGroup: Identifiable {
     let id = UUID()
     var type: MDViewType
@@ -60,14 +65,19 @@ struct MDViewGroup: Identifiable {
     }
     
     func onLinkTap(urlStr: String) {
-        print(urlStr)
         guard let url = URL(string: urlStr) else { return }
-        #if os(iOS)
-		UIApplication.shared.open(url, options: [:])
-        #elseif os(macOS)
-        NSWorkspace.shared.open(url)
-        #endif
+        if let callback = MDLinkHandler.onTapLinkCallback {
+            callback(url)
+        } else {
+            #if os(iOS)
+            UIApplication.shared.open(url, options: [:])
+            #elseif os(macOS)
+            NSWorkspace.shared.open(url)
+            #endif
+        }
     }
+    
+   
 }
 
 
@@ -96,7 +106,6 @@ struct RegexMarkdown: Equatable {
         let matcher = try! NSRegularExpression(pattern: #"((http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*))"#)
         guard let match = matcher.firstMatch(in: string, range: NSRange(location: 0, length: string.utf16.count)) else { return ""}
         let result = string[Range(match.range, in: string)!]
-        print(result)
         return String(result)
     }
 }
@@ -114,7 +123,7 @@ extension RegexMarkdown {
 enum BaseMarkdownRules: String, CaseIterable, MarkdownRule {
     
     
-    case none, header, link, bold, hyperlink, emphasis
+    case none, header, link, bold, hyperlink, emphasis, inlineCode, blockQuote, strikeThrough
     var id: String { self.rawValue }
     //
     //    , , del, quote, inline, ul, ol, blockquotes
@@ -131,9 +140,27 @@ enum BaseMarkdownRules: String, CaseIterable, MarkdownRule {
             return .init(matchIn: "<((?i)https?://(?:www\\.)?\\S+(?:/|\\b))>", matchOut: "$1", strategy: self.link(_:))
         case .emphasis:
             return .init(matchIn: #"(\s)(\*|_)(.+?)\2"#, matchOut: "$1$3", strategy: self.emphasis(_:))
+        case .strikeThrough:
+            return .init(matchIn: #"\~\~(.*?)\~\~"#, matchOut: "$1$3", strategy: self.strikeThrough(_:))
+        case .inlineCode:
+            return .init(matchIn: #"`(.*?)`"#, matchOut: "$1$3", strategy: self.inlineCode(_:))
+        case .blockQuote:
+            return .init(matchIn: #"\n(&gt;|\>)(.*)/"#, matchOut: "$1", strategy: self.quote(_:))
         case .none:
             return .init(matchIn: "", matchOut: "", strategy: {$0})
         }
+    }
+    
+    func strikeThrough(_ text: Text) -> Text {
+        return text.strikethrough()
+    }
+    
+    func quote(_ text: Text) -> Text {
+        return text.foregroundColor(.pink)
+    }
+    
+    func inlineCode(_ text: Text) -> Text {
+        return text.foregroundColor(.secondary)
     }
     
     func header(_ text: Text) -> Text {
@@ -231,11 +258,16 @@ final class MDTextVM: ObservableObject {
     func replaceLInk(for textGroup: MDTextGroup) -> AnyView {
         return Button(action: {
             guard let url = URL(string: textGroup.string) else { return }
-            #if os(iOS)
-			UIApplication.shared.open(url, options: [:])
-            #elseif os(macOS)
-            NSWorkspace.shared.open(url)
-            #endif
+            
+            if let callback = MDLinkHandler.onTapLinkCallback {
+                callback(url)
+            } else {
+                #if os(iOS)
+                UIApplication.shared.open(url, options: [:])
+                #elseif os(macOS)
+                NSWorkspace.shared.open(url)
+                #endif
+            }
         }, label: {textGroup.text})
             .ereaseToAnyView()
         //
